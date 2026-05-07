@@ -424,6 +424,7 @@
     font-weight: 300;
     font-size: 17px;
     color: var(--text);
+    flex: 1;
   }
 
   .week-empty {
@@ -634,6 +635,7 @@ function renderWeek() {
           <div class="week-event-row">
             <span class="week-event-time">${formatTime(e.time)}</span>
             <span class="week-event-name">${esc(e.name)}</span>
+            <button class="event-delete" onclick="deleteEvent('${e.id}','week')">&#215;</button>
           </div>`).join('')
       : `<div class="week-empty">Nothing on</div>`;
     return `
