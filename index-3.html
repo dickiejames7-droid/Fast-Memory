@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>What's On</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0d0b;
+    --surface: #161512;
+    --border: #2a2822;
+    --red: #c0392b;
+    --red-glow: #e74c3c;
+    --text: #e8e2d9;
+    --text-dim: #7a7468;
+    --text-faint: #3d3b36;
+    --accent: #c89b5a;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'DM Mono', monospace;
+    --nav-h: 60px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .page {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    overflow-y: auto;
+    padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  }
+  .page.active { display: flex; }
+
+  nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: rgba(14,13,11,0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: var(--nav-h);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn svg { width: 20px; height: 20px; stroke-width: 1.5; }
+  .nav-btn.active { color: var(--accent); }
+
+  /* HOME */
+  #page-home {
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .home-wordmark {
+    position: absolute;
+    top: 48px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-weight: 300;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    color: var(--text-faint);
+    text-transform: lowercase;
+  }
+
+  .red-btn-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .red-btn {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #e74c3c, #96180d);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow:
+      0 0 0 1px rgba(192,57,43,0.3),
+      0 0 40px rgba(192,57,43,0.25),
+      0 8px 32px rgba(0,0,0,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .red-btn::after {
+    content: '';
+    position: absolute;
+    top: 12px; left: 12px; right: 12px; bottom: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+    pointer-events: none;
+  }
+  .red-btn:active {
+    transform: scale(0.94);
+    box-shadow:
+      0 0 0 1px rgba(192,57,43,0.5),
+      0 0 60px rgba(192,57,43,0.4),
+      0 4px 16px rgba(0,0,0,0.8),
+      inset 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .btn-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 28px 24px 40px;
+    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-handle {
+    width: 36px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 28px;
+  }
+
+  .modal-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 24px;
+    letter-spacing: 0.02em;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  input[type="password"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text);
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--accent); }
+  input[type="date"],
+  input[type="time"],
+  input[type="password"] {
+    font-family: var(--mono);
+    font-size: 15px;
+    color-scheme: dark;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .btn-cancel {
+    flex: 1;
+    padding: 16px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-save {
+    flex: 2;
+    padding: 16px;
+    background: var(--red);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+  }
+  .btn-save:active { background: var(--red-glow); }
+
+  /* PAGE HEADERS */
+  .page-header {
+    padding: 52px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .page-header-date {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 28px;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .page-header-date em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  /* EVENT LIST */
+  .events-list {
+    flex: 1;
+    padding: 8px 24px;
+  }
+
+  .event-item {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--text-faint);
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .event-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    min-width: 42px;
+    flex-shrink: 0;
+  }
+
+  .event-name {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 20px;
+    color: var(--text);
+    line-height: 1.2;
+    flex: 1;
+  }
+
+  .event-delete {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 16px;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s;
+  }
+  .event-delete:active { color: var(--red); }
+
+  .empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 18px;
+    color: var(--text-faint);
+    line-height: 1.6;
+  }
+
+  /* WEEK PAGE */
+  .week-day-block {
+    margin: 0 24px;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0 4px;
+  }
+
+  .week-day-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .week-day-label.today-label { color: var(--accent); }
+
+  .week-day-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--text-faint);
+  }
+
+  .week-event-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 10px 0;
+  }
+
+  .week-event-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    min-width: 38px;
+    flex-shrink: 0;
+  }
+
+  .week-event-name {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 17px;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .week-empty {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--text-faint);
+    padding: 10px 0 14px;
+  }
+
+  /* EMAIL PAGE */
+  .email-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .email-tip {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 15px;
+    color: var(--text-faint);
+    line-height: 1.6;
+  }
+
+  .email-key-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .email-key-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .email-key-row input {
+    flex: 1;
+    font-size: 13px !important;
+    padding: 12px 14px !important;
+  }
+
+  .btn-key-save {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 12px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-key-save:active { color: var(--accent); border-color: var(--accent); }
+
+  .key-saved {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    display: none;
+  }
+  .key-saved.visible { display: block; }
+
+  .btn-run {
+    width: 100%;
+    padding: 18px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .btn-run:not(:disabled):active { color: var(--accent); border-color: var(--accent); }
+  .btn-run:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .run-spinner {
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .briefing-error {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--red-glow);
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+    display: none;
+  }
+  .briefing-error.visible { display: block; }
+
+  .briefing-output {
+    display: none;
+    flex-direction: column;
+  }
+  .briefing-output.visible { display: flex; }
+
+  .briefing-section {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .briefing-section:last-child { border-bottom: none; }
+
+  .briefing-section-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .briefing-item {
+    display: flex;
+    gap: 14px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--text-faint);
+  }
+  .briefing-item:last-child { border-bottom: none; }
+
+  .briefing-dot {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+    padding-top: 3px;
+  }
+
+  .briefing-text {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 17px;
+    color: var(--text);
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  .briefing-text.urgent { color: #e07060; }
+  .briefing-text.faint { color: var(--text-dim); font-style: italic; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="page-home" class="page active">
+    <div class="home-wordmark">what's on</div>
+    <div class="red-btn-wrap">
+      <button class="red-btn" id="open-modal" aria-label="Add event"></button>
+      <span class="btn-label">add event</span>
+    </div>
+  </section>
+
+  <!-- DAY -->
+  <section id="page-day" class="page">
+    <div class="page-header">
+      <div class="page-header-label" id="day-label">Today</div>
+      <div class="page-header-date" id="day-heading"></div>
+    </div>
+    <div class="events-list" id="day-list"></div>
+  </section>
+
+  <!-- WEEK -->
+  <section id="page-week" class="page">
+    <div class="page-header">
+      <div class="page-header-label">This week</div>
+      <div class="page-header-date" id="week-heading"></div>
+    </div>
+    <div id="week-content"></div>
+  </section>
+
+  <!-- EMAIL -->
+  <section id="page-email" class="page">
+    <div class="page-header">
+      <div class="page-header-label">Inbox briefing</div>
+      <div class="page-header-date" id="email-heading"></div>
+    </div>
+    <div class="email-body">
+      <p class="email-tip">A daily mission report from your inbox — actions, not noise. Needs an Anthropic API key, stored only on this device.</p>
+
+      <div class="email-key-group">
+        <label for="api-key-input">Anthropic API key</label>
+        <div class="email-key-row">
+          <input type="password" id="api-key-input" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+          <button class="btn-key-save" id="save-key-btn">Save</button>
+        </div>
+        <span class="key-saved" id="key-saved">✓ key stored</span>
+      </div>
+
+      <button class="btn-run" id="run-briefing" disabled>
+        <span class="run-spinner" id="run-spinner"></span>
+        <span id="run-label">Run briefing</span>
+      </button>
+
+      <div class="briefing-error" id="briefing-error"></div>
+      <div class="briefing-output" id="briefing-output"></div>
+    </div>
+  </section>
+
+  <!-- NAV -->
+  <nav>
+    <button class="nav-btn active" data-page="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="9"/>
+        <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+      </svg>
+      add
+    </button>
+    <button class="nav-btn" data-page="day">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="3" y1="9" x2="21" y2="9"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+      </svg>
+      day
+    </button>
+    <button class="nav-btn" data-page="week">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="3" y1="9" x2="21" y2="9"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="7" y1="14" x2="17" y2="14"/>
+        <line x1="7" y1="18" x2="13" y2="18"/>
+      </svg>
+      week
+    </button>
+    <button class="nav-btn" data-page="email">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <polyline points="2,4 12,13 22,4"/>
+      </svg>
+      mail
+    </button>
+  </nav>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">What's on?</div>
+    <div class="field-group">
+      <label for="m-event">Event</label>
+      <input type="text" id="m-event" autocomplete="off" autocorrect="off">
+    </div>
+    <div class="field-group">
+      <label for="m-date">Date</label>
+      <input type="date" id="m-date">
+    </div>
+    <div class="field-group">
+      <label for="m-time">Time</label>
+      <input type="time" id="m-time">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="close-modal">Cancel</button>
+      <button class="btn-save" id="save-event">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE = 'whatson_v1';
+const API_KEY_STORE = 'whatson_apikey';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE)) || []; }
+  catch { return []; }
+}
+function save(data) { localStorage.setItem(STORE, JSON.stringify(data)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+function formatHeading(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${DAYS[dt.getDay()]}, ${d} <em>${MONTHS[m-1]}</em>`;
+}
+
+function shortDate(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${DAYS[dt.getDay()]} ${d} ${MONTHS[m-1]}`;
+}
+
+function formatTime(t) {
+  if (!t) return '';
+  const [h,min] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  const hr = h % 12 || 12;
+  return `${hr}:${String(min).padStart(2,'0')}${ampm}`;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+const pages = document.querySelectorAll('.page');
+const navBtns = document.querySelectorAll('.nav-btn');
+
+function showPage(id) {
+  pages.forEach(p => p.classList.remove('active'));
+  navBtns.forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelector(`[data-page="${id}"]`).classList.add('active');
+  if (id === 'day') renderDay();
+  if (id === 'week') renderWeek();
+  if (id === 'email') initEmailPage();
+}
+
+navBtns.forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.page)));
+
+function renderDay() {
+  const today = todayStr();
+  document.getElementById('day-label').textContent = 'Today';
+  document.getElementById('day-heading').innerHTML = formatHeading(today);
+  const data = load().filter(e => e.date === today)
+    .sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
+  const list = document.getElementById('day-list');
+  if (!data.length) {
+    list.innerHTML = '<div class="empty-state">Nothing on.</div>';
+    return;
+  }
+  list.innerHTML = data.map(e => `
+    <div class="event-item">
+      <span class="event-time">${formatTime(e.time)}</span>
+      <span class="event-name">${esc(e.name)}</span>
+      <button class="event-delete" onclick="deleteEvent('${e.id}','day')">&#215;</button>
+    </div>`).join('');
+}
+
+function getWeekDays() {
+  const today = new Date();
+  const dow = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((dow + 6) % 7));
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d.toISOString().slice(0,10));
+  }
+  return days;
+}
+
+function renderWeek() {
+  const days = getWeekDays();
+  const today = todayStr();
+  const data = load();
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const f = days[0].split('-').map(Number);
+  const l = days[6].split('-').map(Number);
+  document.getElementById('week-heading').innerHTML =
+    `${f[2]} ${MONTHS[f[1]-1]} <em>&mdash;</em> ${l[2]} ${MONTHS[l[1]-1]}`;
+  document.getElementById('week-content').innerHTML = days.map(day => {
+    const isToday = day === today;
+    const events = data.filter(e => e.date === day)
+      .sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
+    const rows = events.length
+      ? events.map(e => `
+          <div class="week-event-row">
+            <span class="week-event-time">${formatTime(e.time)}</span>
+            <span class="week-event-name">${esc(e.name)}</span>
+            <button class="event-delete" onclick="deleteEvent('${e.id}','week')">&#215;</button>
+          </div>`).join('')
+      : `<div class="week-empty">Nothing on</div>`;
+    return `
+      <div class="week-day-block">
+        <div class="week-day-label ${isToday ? 'today-label' : ''}">${shortDate(day)}${isToday ? ' · today' : ''}</div>
+        ${rows}
+      </div>`;
+  }).join('');
+}
+
+const modal = document.getElementById('modal');
+const mEvent = document.getElementById('m-event');
+const mDate = document.getElementById('m-date');
+const mTime = document.getElementById('m-time');
+
+document.getElementById('open-modal').addEventListener('click', openModal);
+document.getElementById('close-modal').addEventListener('click', closeModal);
+document.getElementById('save-event').addEventListener('click', saveEvent);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+function openModal() {
+  const now = new Date();
+  mDate.value = now.toISOString().slice(0,10);
+  mTime.value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  mEvent.value = '';
+  modal.classList.add('open');
+  setTimeout(() => mEvent.focus(), 350);
+}
+
+function closeModal() { modal.classList.remove('open'); }
+
+function saveEvent() {
+  const name = mEvent.value.trim();
+  if (!name) { mEvent.focus(); return; }
+  const date = mDate.value || todayStr();
+  const time = mTime.value || '';
+  const data = load();
+  data.push({ id: uid(), name, date, time });
+  save(data);
+  closeModal();
+}
+
+function deleteEvent(id, view) {
+  save(load().filter(e => e.id !== id));
+  if (view === 'day') renderDay();
+  if (view === 'week') renderWeek();
+}
+
+// ── EMAIL ──
+
+function initEmailPage() {
+  document.getElementById('email-heading').innerHTML = formatHeading(todayStr());
+  const savedKey = localStorage.getItem(API_KEY_STORE) || '';
+  if (savedKey) {
+    document.getElementById('api-key-input').value = savedKey;
+    document.getElementById('key-saved').classList.add('visible');
+    document.getElementById('run-briefing').disabled = false;
+  }
+}
+
+document.getElementById('save-key-btn').addEventListener('click', () => {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) return;
+  localStorage.setItem(API_KEY_STORE, key);
+  document.getElementById('key-saved').classList.add('visible');
+  document.getElementById('run-briefing').disabled = false;
+});
+
+document.getElementById('api-key-input').addEventListener('input', function() {
+  document.getElementById('key-saved').classList.remove('visible');
+  document.getElementById('run-briefing').disabled = !this.value.trim();
+});
+
+document.getElementById('run-briefing').addEventListener('click', runBriefing);
+
+async function runBriefing() {
+  const apiKey = localStorage.getItem(API_KEY_STORE);
+  if (!apiKey) return;
+
+  const btn = document.getElementById('run-briefing');
+  const spinner = document.getElementById('run-spinner');
+  const label = document.getElementById('run-label');
+  const output = document.getElementById('briefing-output');
+  const errorEl = document.getElementById('briefing-error');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  label.textContent = 'Reading inbox\u2026';
+  output.classList.remove('visible');
+  output.innerHTML = '';
+  errorEl.classList.remove('visible');
+  errorEl.textContent = '';
+
+  const today = new Date().toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+
+  const systemPrompt = `You are an intelligence officer producing a daily email briefing. Today is ${today}.
+
+Using Gmail, read today's emails and any unread emails from the last 48 hours. Produce a structured report with exactly these four sections:
+
+ACTIONS REQUIRED
+[each email needing a reply or action: one line — sender role, what's needed, urgency: TODAY / THIS WEEK / WHENEVER]
+
+WAITING ON
+[threads pending a reply from someone else, or external decisions]
+
+FYI
+[worth knowing, no action needed]
+
+NOISE
+[single line total count, e.g. "14 emails — promotional, newsletters, ignored"]
+
+Rules: terse, depersonalised (roles not names where possible), no pleasantries. If a section is empty write "— none".`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'interop-20250514'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: 'Run my daily email briefing.' }],
+        mcp_servers: [{
+          type: 'url',
+          url: 'https://gmailmcp.googleapis.com/mcp/v1',
+          name: 'gmail'
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API error ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+    if (!text) throw new Error('No briefing returned. Gmail may not be accessible from this device.');
+
+    output.innerHTML = parseBriefing(text);
+    output.classList.add('visible');
+
+  } catch(err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    label.textContent = 'Run briefing';
+  }
+}
+
+function parseBriefing(text) {
+  const SECTIONS = ['ACTIONS REQUIRED', 'WAITING ON', 'FYI', 'NOISE'];
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let html = '';
+  let currentSection = null;
+  let itemsHtml = '';
+
+  function flushSection() {
+    if (!currentSection) return;
+    html += `<div class="briefing-section">
+      <div class="briefing-section-label">${esc(currentSection)}</div>
+      ${itemsHtml || '<div class="briefing-item"><span class="briefing-dot">\u2014</span><span class="briefing-text faint">none</span></div>'}
+    </div>`;
+    itemsHtml = '';
+  }
+
+  for (const line of lines) {
+    const upper = line.toUpperCase();
+    const matched = SECTIONS.find(s => upper === s || upper.startsWith(s + ' ') || upper.startsWith(s + ':'));
+    if (matched) {
+      flushSection();
+      currentSection = matched;
+    } else if (currentSection) {
+      const urgent = line.toLowerCase().includes('today');
+      const faint = line.startsWith('\u2014') || line.toLowerCase().includes('none') || currentSection === 'NOISE';
+      const cls = urgent ? 'urgent' : faint ? 'faint' : '';
+      itemsHtml += `<div class="briefing-item">
+        <span class="briefing-dot">\u00b7</span>
+        <span class="briefing-text ${cls}">${esc(line)}</span>
+      </div>`;
+    }
+  }
+  flushSection();
+
+  if (!html) {
+    html = `<div class="briefing-section"><div class="briefing-text faint" style="white-space:pre-wrap">${esc(text)}</div></div>`;
+  }
+
+  return html;
+}
+
+renderDay();
+</script>
+</body>
+</html>
